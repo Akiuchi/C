@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define MAX_NUM (32)
 #define A_NUMBER (0)
@@ -27,12 +28,12 @@ static bool checkInputParam(const char*, char*, char*);
 	int firstStringLength = 0;
 	int secondStringLength = 0;
 
-	printf_s("Input\n");
 	fgets(inputString, sizeof(inputString), stdin);
 	if (strlen(inputString) == 0 || !checkInputParam(inputString, string1, string2)) {
 		printf_s("Pleas Input Correct Param\n");
 		return 0;
 	}
+
 	firstStringLength = ConvertStringToQuinary(string1, firstQuinary);
 	secondStringLength = ConvertStringToQuinary(string2, secondQuinary);
 
@@ -43,11 +44,20 @@ static bool checkInputParam(const char*, char*, char*);
 
 	ConvertDecimalToString(fullDecimal, calculatedString);
 
-	printf("%s", calculatedString);
+	printf("%s\n", calculatedString);
 
 	return 0;
 };
 
+/*
+ *	入力した文字列を確認しs_1, s_2に分割。
+ *	分割後、s_1, s_2の先頭がAになっていないか確認
+ *	@method	checkInputParam
+ *	@in		char[]	inputString	入力された文字列
+ *	@out	char*	string1		分割した文字列の1つめ(s_1に相当)
+ *	@out	char*	string2		分割した文字列の2つめ(s_2に相当)
+ *	return	boolean	true:分割した文字列の先頭がAでない、false:分割した文字列の先頭がA(エラー)
+ */
 static bool checkInputParam(const char *inputString, char* string1, char* string2)
 {
 	int inputStringLength = strlen(inputString);
@@ -64,18 +74,27 @@ static bool checkInputParam(const char *inputString, char* string1, char* string
 		string2[secondCount] = inputString[count];
 	}
 
-	if (strlen(string1) == 0 || (strlen(string1) > 1 && string1[strlen(string1)] == 'A')) {
+	if (strlen(string1) == 0 || (strlen(string1) > 1 && string1[0] == 'A')) {
 		return false;
 	}
 
-	if (strlen(string2) == 0 || (strlen(string2) == 1 && string2[strlen(string2)] == 'A')) {
+	if (strlen(string2) == 0 || (strlen(string2) == 1 && string2[0] == 'A')) {
 		return false;
 	}
 
 	return true;
 }
 
-static int ConvertStringToQuinary(const char *string, int *quinary) {
+/*
+ *	入力された文字列を5進数に変換
+ *	@method	ConvertStringToQuinary
+ *	@in		char*	string	分割された文字列
+ *	@out	int*	quinary	文字列を5進数に変換したint配列
+ *
+ */
+static int ConvertStringToQuinary(const char *string, int *quinary)
+{
+	// stringで渡ってきた文字列を読み込み、各文字に一致するNUMBERをquinaryに格納
 	int stringLength = strlen(string);
 	for (int count = 0; count < stringLength; count++) {
 		switch (string[count]) {
@@ -99,40 +118,55 @@ static int ConvertStringToQuinary(const char *string, int *quinary) {
 	return stringLength;
 }
 
+/*
+ *	5進数を10進数に変換
+ *	@method	ConvertQuinaryToDecimal
+ *	@in		int*	quinary			入力された文字列を5進数に変換した値を格納する配列
+ *	@out	int		quinaryLength	quinaryの配列数
+ */
 static int ConvertQuinaryToDecimal(const int *quinary, int quinaryLength)
 {
+	/* quinaryの中を舐め、quinaryの要素数の累乗をbaseNumとし
+	   baseNumとquinaryの中の値を掛け合わせたものをdecimalに加算*/
 	int decimal = 0;
+	int baseNum = 0;
 	for (int count = 0; count < quinaryLength; count++) {
-		decimal += ((quinaryLength - count) * 5) * quinary[count];
+		baseNum = pow(5, (quinaryLength - (count + 1)));
+		decimal += baseNum * quinary[count];
 
 	}
 	return decimal;
 }
 
+/**
+ *	10進数を5進数に対する文字に変換
+ *	@method ConvertDecimalToString
+ *	@in		int		fullDecimal		入力された文字を合算した10進数の値
+ *	@out	char[]	string			10進数を5進数に対する文字に変換した文字列
+ */
 static void ConvertDecimalToString(int fullDecimal, char *string)
 {
 	int mod = 0;
 	int devide = fullDecimal;
-	int tempNumbers[MAX_NUM];
-	int count = 0;
-	int decimalLength = 0;
+	int tempNumbers[MAX_NUM] = {};
+	int decimalLength = 1;
 
+	// fullDecimalを5で割った余りと除値を5進数格納用のtempNumbersに順次格納していく
 	while (1) {
 		mod = devide % 5;
 		devide /= 5;
-		tempNumbers[count] = mod;
+		tempNumbers[decimalLength] = mod;
 		if (devide <= 5) {
-			tempNumbers[count] = devide;
+			tempNumbers[decimalLength -1] = devide;
+			decimalLength++;
 			break;
-		} else {
-			count++;
 		}
+		decimalLength++;
 	}
 
-	decimalLength = sizeof tempNumbers / sizeof tempNumbers[0];
-
-	for (int stringCount = 0; decimalLength >= 0; decimalLength--, stringCount++) {
-		switch (tempNumbers[decimalLength]) {
+	// 5進数に変換された値に対する文字をstringに詰めていく
+	for (int stringCount = 0; stringCount < decimalLength; stringCount++) {
+		switch (tempNumbers[stringCount]) {
 		case A_NUMBER:
 			string[stringCount] = 'A';
 			break;
